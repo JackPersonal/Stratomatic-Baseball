@@ -1,0 +1,3 @@
+/*
+mass produces players with different attributes 
+*/

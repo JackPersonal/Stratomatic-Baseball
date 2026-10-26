@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>At-Bat Simulator Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            line-height: 1.6;
+            color: #222;
+            max-width: 900px;
+        }
+        pre {
+            background: #f3f3f3;
+            border: 1px solid #ddd;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .success { color: #007a3d; }
+        .warning { color: #b35c00; }
+    </style>
+</head>
+<body>
+    <h1>At-Bat Simulator Test</h1>
+    <p>Enter hitter stats and run the simulation.</p>
+
+    <div class="controls">
+        <label>Contact Hitter bonus: <input id="modifierInput" type="number" step="0.001" min="0" max="1" value="0.010"></label>
+        <label>OBP: <input id="obpInput" type="number" step="0.001" min="0" max="1" readonly></label>
+        <label>Single Pct: <input id="singleInput" type="number" step="0.001" min="0" max="1" value="0.180"></label>
+        <label>Double Pct: <input id="doubleInput" type="number" step="0.001" min="0" max="1" value="0.027"></label>
+        <label>Triple Pct: <input id="tripleInput" type="number" step="0.001" min="0" max="1" value="0.005"></label>
+        <label>Home Run Pct: <input id="hrInput" type="number" step="0.001" min="0" max="1" value="0.035"></label>
+        <label>Walk Pct (PA-based): <input id="walkInput" type="number" step="0.001" min="0" max="1" value="0.088"></label>
+        <label>AVG: <input id="avgInput" type="number" step="0.001" min="0" max="1" readonly></label>
+        <label>Plate appearances: <input id="plateInput" type="number" min="1" value="10000"></label>
+        <button id="runButton">Run Simulation</button>
+    </div>
+    <p style="font-size:0.9rem; color:#555; margin-top:0.5rem; max-width:700px;">
+        Walk Pct is fixed by the hitter trait data; OBP is derived from the effective AVG and Walk Pct.
+    </p>
+    <div id="results"></div>
+
+    <script type="module">
+        import { runSimulation } from '/static/simulator.js';
+        import { homeLineup } from '/static/data/lineups.js';
+        import { applyAverageBonus } from '/static/data/modifiers.js';
+
+        const baseHitter = homeLineup.find(player => player.name === 'Hunter Goodman');
+
+        const avgInput = document.getElementById('avgInput');
+        const modifierInput = document.getElementById('modifierInput');
+        const obpInput = document.getElementById('obpInput');
+        const singleInput = document.getElementById('singleInput');
+        const doubleInput = document.getElementById('doubleInput');
+        const tripleInput = document.getElementById('tripleInput');
+        const hrInput = document.getElementById('hrInput');
+        const walkInput = document.getElementById('walkInput');
+        const plateInput = document.getElementById('plateInput');
+        const runButton = document.getElementById('runButton');
+        const resultsEl = document.getElementById('results');
+
+        function formatPercentage(value) {
+            return (value * 100).toFixed(2) + '%';
+        }
+        
+        function getEffectiveHitterStats() {
+            const hitRateBonus = (parseFloat(modifierInput.value) || 0) / 4;
+            const single = parseFloat(singleInput.value) + hitRateBonus;
+            const double = parseFloat(doubleInput.value) + hitRateBonus;
+            const triple = parseFloat(tripleInput.value) + hitRateBonus;
+            const hr = parseFloat(hrInput.value) + hitRateBonus;
+            const avg = single + double + triple + hr;
+            const walkPct = parseFloat(walkInput.value);
+            const obp = avg + walkPct * (1 - avg);
+            return { avg, obp, walkPct, single, double, triple, hr };
+        }
+
+        function updateAvgAndObp() {
+            const effectiveHitter = getEffectiveHitterStats();
+            const avg = effectiveHitter.avg;
+            avgInput.value = Number.isFinite(avg) ? avg.toFixed(3) : '';
+            obpInput.value = Number.isFinite(effectiveHitter.obp) ? effectiveHitter.obp.toFixed(3) : '';
+        }
+
+        singleInput.addEventListener('input', updateAvgAndObp);
+        doubleInput.addEventListener('input', updateAvgAndObp);
+        tripleInput.addEventListener('input', updateAvgAndObp);
+        hrInput.addEventListener('input', updateAvgAndObp);
+        walkInput.addEventListener('input', updateAvgAndObp);
+        modifierInput.addEventListener('input', updateAvgAndObp);
+
+        updateAvgAndObp();
+
+        function renderResults(data) {
+            const statusClass = data.avgPass && data.obpPass ? 'success' : 'warning';
+
+            resultsEl.innerHTML = `
+                <h2>Simulation Results</h2>
+                <p class="${statusClass}"><strong>Result:</strong> ${data.avgPass && data.obpPass ? 'PASS' : 'FAIL'}</p>
+                <pre>${JSON.stringify({
+                    expectedAvg: data.expectedAvg,
+                    expectedObp: data.expectedObp,
+                    expectedWalkPct: data.expectedWalkPct,
+                    experimentalAvg: data.experimentalAvg,
+                    experimentalObp: data.experimentalObp,
+                    experimentalWalkPct: data.experimentalWalkPct,
+                    plateAppearances: data.plateAppearances,
+                    atBats: data.atBats,
+                    outcomeCounts: data.counts
+                }, null, 2)}</pre>
+                <p>Simulated batting average: <strong>${data.experimentalAvg.toFixed(3)}</strong> over <strong>${data.atBats}</strong> at-bats</p>
+                <p>Simulated on-base percentage: <strong>${data.experimentalObp.toFixed(3)}</strong></p>
+                <p>Simulated Walk rate: <strong>${formatPercentage(data.experimentalWalkPct)}</strong></p>
+            `;
+        }
+
+        runButton.addEventListener('click', () => { //when run btn is clicked,
+            const effectiveHitter = getEffectiveHitterStats();
+            const plateAppearances = parseInt(plateInput.value, 10);
+
+            if (!Number.isFinite(effectiveHitter.avg) || !Number.isFinite(effectiveHitter.obp) || !Number.isFinite(effectiveHitter.walkPct) || Number.isNaN(plateAppearances) || plateAppearances <= 0) {
+                resultsEl.innerHTML = '<p class="warning">Enter valid hit rates, walk pct, and plate appearances.</p>';
+                return;
+            }
+
+            const data = runSimulation({
+                avg: effectiveHitter.avg,
+                obp: effectiveHitter.obp,
+                walkPct: effectiveHitter.walkPct,
+                plateAppearances,
+                singlePct: effectiveHitter.single,
+                doublePct: effectiveHitter.double,
+                triplePct: effectiveHitter.triple,
+                hrPct: effectiveHitter.hr
+            });
+            renderResults(data);
+        });
+    </script>
+</body>
+</html>

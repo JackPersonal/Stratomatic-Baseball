@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Box Score</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f2f2f7;
+            color: #1c1c1e;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER CARD ── */
+        .header-card {
+            background: #fff;
+            padding: 24px 20px 0;
+            margin-bottom: 12px;
+        }
+
+        .matchup {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 20px;
+        }
+
+        .team-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .team-logo {
+            width: 112px; /*was 56px*/
+            height: 112px; /*was 56px*/
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px; /*was 22px*/
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .team-logo.away { background: #f7d8dd; color: #8b0000; }
+        .team-logo.home { background: #e8eaf6; color: #3949ab; }
+
+        .team-abbr {
+            font-size: 22px; /*was 13px*/
+            font-weight: 600;
+            color: #6e6e73;
+            letter-spacing: 0.5px;
+        }
+
+        .score-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex: 0 0 auto;
+            padding: 0 16px;
+        }
+
+        .scores {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .score-num {
+            font-size: 52px;
+            font-weight: 300;
+            line-height: 1;
+            color: #1c1c1e;
+        }
+
+        .score-num.winner { font-weight: 700; }
+
+        .score-sep {
+            font-size: 28px;
+            color: #aeaeb2;
+            font-weight: 1000; /*was 700*/
+            margin-bottom: 4px;
+        }
+
+        .final-label {
+            font-size: 16px; /*was 12px*/
+            font-weight: 600;
+            color: #6e6e73;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ── LINE SCORE TABLE ── */
+        .linescore-wrap {
+            overflow-x: auto;
+            border-top: 0.5px solid #e5e5ea;
+        }
+
+        .linescore {
+            width: 100%;
+            min-width: 480px;
+            border-collapse: collapse;
+            font-size: 30px; /*was 13px*/
+        }
+
+        .linescore th, .linescore td {
+            text-align: center;
+            padding: 10px 6px;
+            min-width: 28px;
+        }
+
+        .linescore th {
+            font-weight: 600;
+            color: #6e6e73;
+            font-size: 30px;
+            border-bottom: 0.5px solid #e5e5ea;
+        }
+
+        .linescore td { color: #1c1c1e; }
+
+        .linescore .team-col {
+            text-align: left;
+            padding-left: 16px;
+            font-weight: 600;
+            min-width: 60px;
+            font-size: 30px;
+        }
+
+        .linescore .rhe-sep {
+            border-left: 0.5px solid #e5e5ea;
+            font-weight: 700;
+        }
+
+        .linescore tr:last-child td { padding-bottom: 14px; }
+
+        /* ── TEAM TABS ── */
+        .team-tabs {
+            background: #fff;
+            display: flex;
+            border-bottom: 0.5px solid #e5e5ea;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 30px; /*was 14px*/
+            font-weight: 500;
+            color: #6e6e73;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .tab-btn.active {
+            color: #007aff;
+            border-bottom-color: #007aff;
+            font-weight: 600;
+        }
+
+        /* ── STATS SECTION ── */
+        .stats-section {
+            background: #fff;
+            margin-bottom: 12px;
+        }
+
+        .section-header {
+            padding: 14px 16px 10px;
+            font-size: 30px; /*was 12px*/
+            font-weight: 700;
+            color: #6e6e73;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            border-bottom: 0.5px solid #e5e5ea;
+        }
+
+        /* ── STATS TABLE ── */
+        .stats-wrap { overflow-x: auto; padding-right: 128px; }
+
+        .stats-table {
+            width: 100%;
+            min-width: 420px;
+            border-collapse: collapse;
+            font-size: 30px; /*was 15px*/
+            table-layout: fixed;
+        }
+
+        .stats-table th {
+            padding: 12px 12px;
+            text-align: right;
+            font-weight: 700;
+            font-size: 30px; /*was 13px*/
+            color: #4a4a4f;
+            letter-spacing: 0.3px;
+            border-bottom: 0.5px solid #e5e5ea;
+            white-space: nowrap;
+        }
+
+        .stats-table th:first-child,
+        .stats-table td:first-child {
+            text-align: left;
+            padding-left: 18px;
+            min-width: 220px;
+            width: 24%;
+        }
+
+        .stats-table th:not(:first-child),
+        .stats-table td:not(:first-child) {
+            width: calc((100% - 24%) / 6);
+        }
+
+        .stats-table td {
+            padding: 14px 12px;
+            text-align: right;
+            border-bottom: 0.5px solid #f2f2f7;
+            color: #1c1c1e;
+            line-height: 1.4; /* 1.4 */
+            white-space: nowrap;
+        }
+
+        .stats-table td:first-child {
+            text-align: left;
+            padding-left: 16px;
+        }
+
+        .stats-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .player-name { font-weight: 600; }
+        .player-pos { font-weight: 400; color: #6e6e73; }
+
+        .total-row td {
+            font-weight: 700;
+            border-top: 0.5px solid #e5e5ea;
+            border-bottom: none;
+            background: #f9f9fb;
+            padding-top: 10px;
+            padding-bottom: 12px;
+        }
+
+        .decision-label {
+            font-size: 22px; /*was 11px*/
+            color: #6e6e73;
+            font-weight: 400;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-card">
+    <div class="matchup">
+        <div class="team-side">
+            <div class="team-logo away" id="awayLogo">COL</div>
+            <div class="team-abbr" id="awayAbbr">COL</div>
+        </div>
+        <div class="score-center">
+            <div class="scores">
+                <span class="score-num" id="awayScore">2</span>
+                <span class="score-sep">–</span>
+                <span class="score-num winner" id="homeScore">7</span>
+            </div>
+            <div class="final-label">Final</div>
+        </div>
+        <div class="team-side">
+            <div class="team-logo home" id="homeLogo">COL</div>
+            <div class="team-abbr" id="homeAbbr">COL</div>
+        </div>
+    </div>
+
+    <div class="linescore-wrap">
+        <table class="linescore" id="linescoreTable"></table>
+    </div>
+</div>
+
+<div class="team-tabs">
+    <button class="tab-btn active" id="awayTab" onclick="selectTeam('away')"></button>
+    <button class="tab-btn" id="homeTab" onclick="selectTeam('home')"></button>
+</div>
+
+<div class="stats-section">
+    <div class="section-header">Hitters</div>
+    <div class="stats-wrap">
+        <table class="stats-table" id="hittersTable"></table>
+    </div>
+</div>
+
+<div class="stats-section">
+    <div class="section-header">Pitchers</div>
+    <div class="stats-wrap">
+        <table class="stats-table" id="pitchersTable"></table>
+    </div>
+</div>
+
+<script type="module">
+import { homeLineup, awayLineup, lineupToHitters } from '/static/data/lineups.js';
+
+function loadSavedGameData() {
+    const saved = localStorage.getItem('boxScoreSummary');
+    if (!saved) return null;
+    try {
+        return JSON.parse(saved);
+    } catch {
+        return null;
+    }
+}
+
+const defaultGameData = {
+    away: { name: 'St. Louis', abbr: 'STL', score: 2 },
+    home: { name: 'Colorado', abbr: 'COL', score: 7 },
+    innings: [
+        { away: 0, home: 3 },
+        { away: 0, home: 0 },
+        { away: 0, home: 3 },
+        { away: 2, home: 0 },
+        { away: 0, home: 1 },
+        { away: 0, home: 0 },
+        { away: 0, home: 0 },
+        { away: 0, home: 0 },
+        { away: 0, home: null },
+    ],
+    rh: {
+        away: { r: 2, h: 5 },
+        home: { r: 7, h: 12 },
+    },
+    hitters: {
+        away: lineupToHitters(awayLineup),
+        home: lineupToHitters(homeLineup),
+    },
+    pitchers: {
+        away: [
+            { name: 'C. Dollander', decision: 'L (3-3)', ip: '1.0', h: 5, er: 3, bb: 1, k: 0 },
+            { name: 'B. Bernardino',decision: '',        ip: '1.1', h: 2, er: 2, bb: 0, k: 0 },
+            { name: 'V. Vodnik',    decision: '',        ip: '0.2', h: 2, er: 1, bb: 1, k: 1 },
+            { name: 'T. Gordon',    decision: '',        ip: '4.0', h: 3, er: 1, bb: 1, k: 5 },
+            { name: 'J. Mejia',     decision: '',        ip: '1.0', h: 0, er: 0, bb: 0, k: 1 },
+        ],
+        home: [
+            { name: 'M. Keller',   decision: 'W (6-2)', ip: '6.0', h: 3, er: 1, bb: 1, k: 6 },
+            { name: 'D. Bednar',   decision: '',         ip: '1.0', h: 1, er: 1, bb: 0, k: 1 },
+            { name: 'C. Stratton', decision: '',         ip: '1.0', h: 1, er: 0, bb: 0, k: 2 },
+        ],
+    },
+};
+
+const gameData = loadSavedGameData() || defaultGameData;
+
+// ── STATE ───────────────────────────────────────────────────────────────────
+let selectedTeam = 'away';
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+function init() {
+    const { away, home } = gameData;
+
+    // Team labels
+    document.getElementById('awayLogo').textContent = away.abbr;
+    document.getElementById('homeLogo').textContent = home.abbr;
+    document.getElementById('awayAbbr').textContent = away.abbr;
+    document.getElementById('homeAbbr').textContent = home.abbr;
+    document.getElementById('awayTab').textContent = away.name;
+    document.getElementById('homeTab').textContent = home.name;
+
+    // Winning score bold
+    const awayWins = away.score > home.score;
+    document.getElementById('awayScore').textContent = away.score;
+    document.getElementById('homeScore').textContent = home.score;
+    document.getElementById('awayScore').classList.toggle('winner', awayWins);
+    document.getElementById('homeScore').classList.toggle('winner', !awayWins);
+
+    buildLinescore();
+    renderStats();
+}
+
+// ── LINESCORE ───────────────────────────────────────────────────────────────
+function buildLinescore() {
+    const { innings, rh, away, home } = gameData;
+    const t = document.getElementById('linescoreTable');
+
+    const inningNums = innings.map((_, i) => i + 1);
+
+    t.innerHTML = `
+        <thead>
+            <tr>
+                <th class="team-col"></th>
+                ${inningNums.map(n => `<th>${n}</th>`).join('')}
+                <th class="rhe-sep">R</th><th>H</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="team-col">${away.abbr}</td>
+                ${innings.map(i => `<td>${i.away ?? '–'}</td>`).join('')}
+                <td class="rhe-sep">${rh.away.r}</td>
+                <td>${rh.away.h}</td>
+            </tr>
+            <tr>
+                <td class="team-col">${home.abbr}</td>
+                ${innings.map(i => `<td>${i.home ?? '–'}</td>`).join('')}
+                <td class="rhe-sep">${rh.home.r}</td>
+                <td>${rh.home.h}</td>
+            </tr>
+        </tbody>
+    `;
+}
+
+// ── TAB SWITCH ──────────────────────────────────────────────────────────────
+function selectTeam(team) {
+    selectedTeam = team;
+    document.getElementById('awayTab').classList.toggle('active', team === 'away');
+    document.getElementById('homeTab').classList.toggle('active', team === 'home');
+    renderStats();
+}
+
+window.selectTeam = selectTeam; //export to window so inline onclick can see it in a <type = "module"> tag
+
+// ── STATS TABLES ────────────────────────────────────────────────────────────
+function renderStats() {
+    renderHitters(gameData.hitters[selectedTeam]);
+    renderPitchers(gameData.pitchers[selectedTeam]);
+}
+
+function renderHitters(hitters) {
+    const totals = hitters.reduce((acc, p) => ({
+        ab: acc.ab + p.ab, h: acc.h + p.h,
+        rbi: acc.rbi + p.rbi, hr: acc.hr + p.hr, bb: acc.bb + p.bb, k: acc.k + p.k
+    }), { ab: 0, h: 0, rbi: 0, hr: 0, bb: 0, k: 0 });
+
+    document.getElementById('hittersTable').innerHTML = `
+        <thead>
+            <tr>
+                <th>Hitter</th>
+                <th>AB</th><th>H</th><th>RBI</th><th>HR</th><th>BB</th><th>K</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${hitters.map(p => `
+                <tr>
+                    <td><span class="player-name">${p.name}</span> <span class="player-pos">${p.pos}</span></td>
+                    <td>${p.ab}</td><td>${p.h}</td><td>${p.rbi}</td><td>${p.hr}</td><td>${p.bb}</td><td>${p.k}</td>
+                </tr>
+            `).join('')}
+            <tr class="total-row">
+                <td>Team</td>
+                <td>${totals.ab}</td><td>${totals.h}</td>
+                <td>${totals.rbi}</td><td>${totals.hr}</td><td>${totals.bb}</td>
+                <td>${totals.k}</td>
+            </tr>
+        </tbody>
+    `;
+}
+
+function renderPitchers(pitchers) {
+    const totalOuts = pitchers.reduce((sum, pitcher) => {
+        const [innings, partialOuts = 0] = String(pitcher.ip).split('.').map(Number);
+        return sum + innings * 3 + partialOuts;
+    }, 0);
+    const totalIP = `${Math.floor(totalOuts / 3)}.${totalOuts % 3}`;
+    const totals = pitchers.reduce((acc, p) => ({
+        h: acc.h + p.h, er: acc.er + p.er, bb: acc.bb + p.bb, k: acc.k + p.k
+    }), { h: 0, er: 0, bb: 0, k: 0 });
+
+    document.getElementById('pitchersTable').innerHTML = `
+        <thead>
+            <tr>
+                <th>Pitcher</th>
+                <th>IP</th><th>H</th><th>ER</th><th>BB</th><th>K</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${pitchers.map(p => `
+                <tr>
+                    <td>
+                        <span class="player-name">${p.name}</span>
+                        ${p.decision ? `<span class="decision-label">${p.decision}</span>` : ''}
+                    </td>
+                    <td>${p.ip}</td><td>${p.h}</td><td>${p.er}</td>
+                    <td>${p.bb}</td><td>${p.k}</td>
+                </tr>
+            `).join('')}
+            <tr class="total-row">
+                <td>Team</td>
+                <td>${totalIP}</td><td>${totals.h}</td><td>${totals.er}</td>
+                <td>${totals.bb}</td><td>${totals.k}</td>
+            </tr>
+        </tbody>
+    `;
+}
+
+init();
+</script>
+</body>
+</html>

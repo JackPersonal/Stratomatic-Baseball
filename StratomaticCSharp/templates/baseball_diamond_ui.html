@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baseball Diamond Simulator</title>
+  <style>
+    :root {
+      --color-background-secondary: #f0f0f0;
+      --color-border-tertiary: #ddd;
+      --color-text-secondary: #666;
+      --color-text-primary: #222;
+      --color-text-tertiary: #999;
+      --color-border-secondary: #ccc;
+      --border-radius-md: 4px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #fafafa;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .field {
+      background: #3a7d3a;
+      border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+    }
+
+    .base {
+      width: 22px;
+      height: 22px;
+      background: #e8e0c8;
+      border: 2px solid #c8b89a;
+      transform: rotate(45deg);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .base.occupied {
+      background: #E24B4A;
+      border-color: #A32D2D;
+    }
+
+    .base-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+    }
+
+    .runner-label {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+      text-align: center;
+    }
+
+    .stat-pill {
+      background: var(--color-background-secondary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      display: block;
+    }
+
+    .btn {
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: var(--border-radius-md);
+      border: 0.5px solid var(--color-border-secondary);
+      background: transparent;
+      color: var(--color-text-primary);
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: var(--color-background-secondary);
+    }
+
+    .btn.danger {
+      border-color: #A32D2D;
+      color: #A32D2D;
+    }
+
+    .btn.primary {
+      border-color: #0066cc;
+      background: #0066cc;
+      color: white;
+    }
+
+    .btn.primary:hover {
+      background: #0052a3;
+    }
+
+    .outcome-badge {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: var(--border-radius-md);
+      background: var(--color-background-secondary);
+      color: var(--color-text-secondary);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .outcome-badge.single {
+      background: #EAF3DE;
+      color: #27500A;
+    }
+
+    .outcome-badge.double {
+      background: #EAF3DE;
+      color: #27500A;
+    }
+
+    .outcome-badge.triple {
+      background: #EAF3DE;
+      color: #27500A;
+    }
+
+    .outcome-badge.home_run {
+      background: #EAF3DE;
+      color: #27500A;
+    }
+
+    .outcome-badge.double_play {
+      background: #FCEBEB;
+      color: #791F1F;
+    }
+
+    .outcome-badge.productive_out {
+      background: #F7F0D6;
+      color: #6C4C00;
+    }
+
+    .outcome-badge.out {
+      background: #FCEBEB;
+      color: #791F1F;
+    }
+
+    .outcome-badge.automatic_out {
+      background: #FCEBEB;
+      color: #791F1F;
+    }
+
+    .outcome-badge.walk {
+      background: #E6F1FB;
+      color: #0C447C;
+    }
+
+    .redo-controls {
+      display: none;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .hitter-inputs {
+      background: white;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      padding: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .hitter-inputs label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .hitter-inputs input {
+      padding: 4px 8px;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 3px;
+      font-size: 13px;
+    }
+
+    .pitcher-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .pitcher-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .pitcher-panel input,
+    .pitcher-panel select {
+      padding: 4px 8px;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 3px;
+      font-size: 13px;
+    }
+
+    .pitcher-panel input {
+      width: 72px;
+    }
+
+    .pitching-change-control {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: flex-start;
+    }
+
+    .pitching-change-control .btn {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .pitching-change-control select {
+      width: 260px;
+      margin-left: -1px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .pinch-hitter-control {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: flex-start;
+    }
+
+    .pinch-hitter-control .btn {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .pinch-hitter-control select {
+      width: 260px;
+      margin-left: -1px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    #pinchHitterSelect {
+      display: none;
+    }
+
+    #pitcherSelect {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Baseball Diamond Simulator</h1>
+
+  <div class="hitter-inputs">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 12px; color: var(--color-text-secondary);">Current Batter</span>
+      <div id="currentBatter" style="font-size: 16px; font-weight: 500; color: var(--color-text-primary);"></div>
+    </div>
+    <label>AVG: <input id="avgInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <label>OBP: <input id="obpInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <label>Single Pct: <input id="singleInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <label>Double Pct: <input id="doubleInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <label>Triple Pct: <input id="tripleInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <label>Home Run Pct: <input id="hrInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <label>Walk Pct: <input id="walkInput" type="number" step="0.001" min="0" max="1" readonly></label>
+    <button class="btn primary" id="swingBtn">Swing</button>
+    <span id="stealBtnContainer" style="display:inline-block;"></span>
+    <button class="btn primary" id="buntBtn">Bunt</button>
+    <div class="pinch-hitter-control">
+      <button class="btn primary" id="pinchHitterBtn">Pinch Hitter</button>
+      <select id="pinchHitterSelect" aria-label="Available pinch hitters"></select>
+    </div>
+    <div class="pitching-change-control">
+      <button class="btn primary" id="pitchingChangeBtn">Pitching Change</button>
+      <select id="pitcherSelect" aria-label="Available pitchers"></select>
+    </div>
+    <div class="pitcher-panel">
+      <span style="font-size: 12px; color: var(--color-text-secondary);">Current Pitcher</span>
+      <div id="currentPitcher" style="font-size: 16px; font-weight: 500; color: var(--color-text-primary);"></div>
+      <div style="display: flex; gap: 8px;">
+        <label>ERA: <input id="eraInput" type="number" step="0.01" readonly></label>
+        <label>Stamina: <input id="staminaInput" type="number" step="1" readonly></label>
+        <label>Effectiveness: <input id="effectivenessInput" type="number" min="1" max="5" step="1" readonly></label>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 1rem 0;">
+    <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+
+      <div style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0;">
+        <div
+          style="width: 200px; height: 200px; background: #3a7d3a; border-radius: 4px; position: relative; border: 1px solid #2d6b2d;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; border-radius: 4px;">
+            <div
+              style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 160px; height: 160px; background: #c8a96e; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);">
+            </div>
+            <div
+              style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); width: 130px; height: 130px; background: #3a7d3a; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);">
+            </div>
+            <div
+              style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%) rotate(45deg); width: 16px; height: 16px; background: #fff; border: 1.5px solid #ccc;">
+            </div>
+          </div>
+
+          <div class="base-wrap" style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%);"
+            title="Second base">
+            <div class="base" id="base2" onclick="toggleBase(2)"></div>
+          </div>
+          <div class="base-wrap" style="position: absolute; top: 50%; left: 8px; transform: translateY(-50%);"
+            title="Third base">
+            <div class="base" id="base3" onclick="toggleBase(3)"></div>
+          </div>
+          <div class="base-wrap" style="position: absolute; top: 50%; right: 8px; transform: translateY(-50%);"
+            title="First base">
+            <div class="base" id="base1" onclick="toggleBase(1)"></div>
+          </div>
+
+          <div
+            style="position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; background: #c8b89a; border-radius: 50%; border: 1.5px solid #a08060;">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 24px; margin-top: 8px; font-size: 12px; color: var(--color-text-secondary);">
+          <span>3B</span><span style="margin-left: 8px;">2B</span><span style="margin-left: 8px;">1B</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <div
+            style="width: 12px; height: 12px; background: #e8e0c8; border: 1.5px solid #c8b89a; transform: rotate(45deg);">
+          </div>
+          <span style="font-size: 12px; color: var(--color-text-secondary);">empty</span>
+          <div
+            style="width: 12px; height: 12px; background: #E24B4A; border: 1.5px solid #A32D2D; transform: rotate(45deg); margin-left: 8px;">
+          </div>
+          <span style="font-size: 12px; color: var(--color-text-secondary);">runner</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary);">click a base to toggle runner
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="stat-pill"><span style="font-size:11px;color:var(--color-text-secondary);">Inning</span><span
+              class="stat-val" id="inning-val">Top 1</span></div>
+          <div class="stat-pill"><span style="font-size:11px;color:var(--color-text-secondary);">Outs</span><span
+              class="stat-val" id="outs-val">0</span></div>
+          <div class="stat-pill"><span style="font-size:11px;color:var(--color-text-secondary);">Score</span><span
+              class="stat-val" id="score-val">0 – 0</span></div>
+          <div class="stat-pill"><span style="font-size:11px;color:var(--color-text-secondary);">Count</span><span
+              class="stat-val" id="count-val">0-0</span></div>
+        </div>
+
+        <div style="border-top: 0.5px solid var(--color-border-tertiary); padding-top: 12px;">
+          <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px;">Last result</div>
+          <div class="outcome-badge" id="outcome-badge">—</div>
+          <div class="redo-controls" id="redoControls">
+            <button class="btn primary" id="redoBtn">Redo</button>
+            <button class="btn primary" id="acceptResultBtn">Accept result</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+          <button class="btn" onclick="window.simAB('single')">Single</button>
+          <button class="btn" onclick="window.simAB('double')">Double</button>
+          <button class="btn" onclick="window.simAB('triple')">Triple</button>
+          <button class="btn" onclick="window.simAB('home_run')">Home run</button>
+          <button class="btn" onclick="window.simAB('walk')">Walk</button>
+          <button class="btn" onclick="window.simAB('out')">Out</button>
+          <button class="btn danger" onclick="window.resetGame()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { runSimulation } from '/static/simulator.js';
+    import { homeLineup, awayLineup, homeBench, awayBench, homeBullpen, awayBullpen, lineupToHitters } from '/static/data/lineups.js';
+    import { applyHitterModifiers } from '/static/data/modifiers.js';
+
+    const BOX_SCORE_KEY = 'boxScoreSummary';
+    const GAME_TEAMS = {
+      away: { name: 'St. Louis', abbr: 'STL' },
+      home: { name: 'Colorado', abbr: 'COL' }
+    };
+
+    const STAMINA_ROLE_MULTIPLIERS = {
+      SP: 1,
+      RP: 3
+    };
+
+    const state = { runners: [false, false, false], runnerPitchers: [null, null, null], lastOutBatterByTeam: { away: null, home: null }, outs: 0, balls: 0, strikes: 0, inning: 1, top: true, score: [0, 0], awayBatter: 0, homeBatter: 0, homePitcher: 0, awayPitcher: 0, usedHomePitchers: [0], usedAwayPitchers: [0], gameReset: false };
+    let pendingRedo = null;
+    let redoInProgress = false;
+    let previewingRedo = false;
+    let previewedGameEnd = false;
+
+    const activeLineups = {
+      away: awayLineup.map(player => applyHitterModifiers(player)),
+      home: homeLineup.map(player => applyHitterModifiers(player)),
+    };
+
+    const usedBenchPlayers = { away: [], home: [] };
+
+    const gameStats = {
+      away: lineupToHitters(awayLineup),
+      home: lineupToHitters(homeLineup),
+      pitchers: {
+        away: createPitcherGameStats(awayBullpen),
+        home: createPitcherGameStats(homeBullpen),
+      },
+      linescore: createInitialLinescore(),
+    };
+
+    const avgInput = document.getElementById('avgInput');
+    const obpInput = document.getElementById('obpInput');
+    const singleInput = document.getElementById('singleInput');
+    const doubleInput = document.getElementById('doubleInput');
+    const tripleInput = document.getElementById('tripleInput');
+    const hrInput = document.getElementById('hrInput');
+    const walkInput = document.getElementById('walkInput');
+    // const simulateBtn = document.getElementById('simulateBtn');
+    const currentBatterEl = document.getElementById('currentBatter');
+    const currentPitcherEl = document.getElementById('currentPitcher');
+    const eraInput = document.getElementById('eraInput');
+    const staminaInput = document.getElementById('staminaInput');
+    const effectivenessInput = document.getElementById('effectivenessInput');
+    const pitchingChangeBtn = document.getElementById('pitchingChangeBtn');
+    const pitcherSelect = document.getElementById('pitcherSelect');
+    const pinchHitterBtn = document.getElementById('pinchHitterBtn');
+    const pinchHitterSelect = document.getElementById('pinchHitterSelect');
+    const redoControls = document.getElementById('redoControls');
+    const redoBtn = document.getElementById('redoBtn');
+    const acceptResultBtn = document.getElementById('acceptResultBtn');
+
+    const baseRates = {
+      singleFirstToThird: 0.33,
+      singleSecondToHome: 0.50,
+      doubleFirstToHome: 0.75
+    };
+
+    const STAMINA_COSTS = {
+      plateAppearance: 1,
+      single: 1,
+      walkOrExtraBaseHit: 2,
+      earnedRun: 5
+    };
+
+    const AUTOMATIC_OUT_CHANCES = {
+      3: 0,
+      4: 0.05,
+      5: 0.10
+    };
+
+    const REDO_CHANCES = {
+      1: 0.10,
+      2: 0.05
+    };
+
+    const EFFECTIVENESS_THRESHOLDS = [
+      { maxStamina: 24, ratingDrop: 4 },  
+      { maxStamina: 34, ratingDrop: 3 },
+      { maxStamina: 44, ratingDrop: 2 },
+      { maxStamina: 59, ratingDrop: 1 }
+    ];
+
+    function createInitialLinescore() {
+      return Array.from({ length: 9 }, () => ({ away: 0, home: null }));
+    }
+
+    function ensureLinescoreEntry() {
+      const inningIndex = state.inning - 1;
+      if (!gameStats.linescore[inningIndex]) {
+        gameStats.linescore[inningIndex] = { away: 0, home: null };
+      }
+      return gameStats.linescore[inningIndex];
+    }
+
+    function createPitcherGameStats(pitchers) {
+      return pitchers.map((pitcher, index) => ({
+        name: pitcher.name,
+        decision: '',
+        entryOrder: index === 0 ? 0 : null,
+        position: pitcher.position,
+        rating: pitcher.rating,
+        staminaMultiplier: STAMINA_ROLE_MULTIPLIERS[pitcher.position],
+        stamina: pitcher.stamina,
+        outs: 0,
+        h: 0,
+        er: 0,
+        bb: 0,
+        k: 0,
+        entered: index === 0,
+      }));
+    }
+
+    function getCurrentPitcherGameStats() {
+      const team = state.top ? 'home' : 'away';
+      const index = state.top ? state.homePitcher : state.awayPitcher;
+      return gameStats.pitchers[team][index];
+    }
+
+    function getCurrentPitcherId() {
+      return `${state.top ? 'home' : 'away'}:${state.top ? state.homePitcher : state.awayPitcher}`;
+    }
+
+    function advanceRunnerPitchers(oldRunners, oldPitchers, newRunners, scoredBases = []) {
+      const nextPitchers = [null, null, null];
+      const claimedBases = new Set();
+      for (let origin = 2; origin >= 0; origin--) {
+        if (!oldRunners[origin] || !oldPitchers[origin] || scoredBases.includes(origin)) continue;
+        const destinations = [
+          ...[0, 1, 2].filter(base => base > origin),
+          origin,
+          ...[0, 1, 2].filter(base => base < origin)
+        ];
+        const destination = destinations.find(base => newRunners[base] && !claimedBases.has(base));
+        if (destination !== undefined) {
+          nextPitchers[destination] = oldPitchers[origin];
+          claimedBases.add(destination);
+        }
+      }
+      return nextPitchers;
+    }
+
+    function creditEarnedRuns(pitcherIds) {
+      pitcherIds.forEach(pitcherId => {
+        if (!pitcherId) return;
+        const [team, indexText] = pitcherId.split(':');
+        const pitcher = gameStats.pitchers[team][Number(indexText)];
+        if (!pitcher) return;
+        pitcher.er += 1;
+        pitcher.stamina = Math.max(0, pitcher.stamina - STAMINA_COSTS.earnedRun * pitcher.staminaMultiplier);
+      });
+      updateCurrentPitcher();
+    }
+
+    function getPitcherEffectiveness(pitcher) {
+      const threshold = EFFECTIVENESS_THRESHOLDS.find(item => pitcher.stamina <= item.maxStamina);
+      return Math.max(1, pitcher.rating - (threshold ? threshold.ratingDrop : 0));
+    }
+
+    function shouldBeAutomaticOut() {
+      const pitcher = getCurrentPitcherGameStats();
+      const chance = AUTOMATIC_OUT_CHANCES[getPitcherEffectiveness(pitcher)] || 0;
+      return Math.random() < chance;
+    }
+
+    function cloneGameState() {
+      return {
+        state: JSON.parse(JSON.stringify(state)),
+        gameStats: JSON.parse(JSON.stringify(gameStats))
+      };
+    }
+
+    function restoreGameState(snapshot) {
+      Object.assign(state, JSON.parse(JSON.stringify(snapshot.state)));
+      const restoredStats = JSON.parse(JSON.stringify(snapshot.gameStats));
+      gameStats.away = restoredStats.away;
+      gameStats.home = restoredStats.home;
+      gameStats.pitchers = restoredStats.pitchers;
+      gameStats.linescore = restoredStats.linescore;
+    }
+
+    function setPAControlsLocked(locked) {
+      document.querySelectorAll('.hitter-inputs button, .hitter-inputs select').forEach(control => {
+        control.disabled = locked && control !== redoBtn && control !== acceptResultBtn;
+      });
+      redoBtn.disabled = !locked;
+      acceptResultBtn.disabled = !locked;
+    }
+
+    function showRedoControls(show) {
+      redoControls.style.display = show ? 'flex' : 'none';
+    }
+
+    async function startRedoablePA(action) {
+      if (pendingRedo) return;
+
+      const pitcherBeforePA = JSON.parse(JSON.stringify(getCurrentPitcherGameStats()));
+      const before = cloneGameState();
+      if (!redoInProgress && shouldBeAutomaticOut()) {
+        simAB('automatic_out');
+        return;
+      }
+
+      previewedGameEnd = false;
+      previewingRedo = !redoInProgress;
+      await action();
+      previewingRedo = false;
+      if (redoInProgress) return;
+
+      const redoChance = REDO_CHANCES[getPitcherEffectiveness(pitcherBeforePA)] || 0;
+      if (Math.random() >= redoChance) {
+        const endsGame = previewedGameEnd;
+        previewedGameEnd = false;
+        if (endsGame) loadBoxScoreUI();
+        return;
+      }
+
+      const committed = cloneGameState();
+      const badge = document.getElementById('outcome-badge');
+      const resultText = badge.textContent;
+      const resultClass = badge.className;
+      restoreGameState(before);
+      updateCurrentBatter();
+      render();
+      badge.textContent = resultText;
+      badge.className = resultClass;
+      pendingRedo = { before, committed, action, endsGame: previewedGameEnd };
+      previewedGameEnd = false;
+      showRedoControls(true);
+      setPAControlsLocked(true);
+    }
+
+    function acceptRedoResult() {
+      if (!pendingRedo) return;
+      restoreGameState(pendingRedo.committed);
+      const endsGame = pendingRedo.endsGame;
+      pendingRedo = null;
+      showRedoControls(false);
+      setPAControlsLocked(false);
+      updateCurrentBatter();
+      render();
+      if (endsGame) loadBoxScoreUI();
+    }
+
+    async function redoPendingResult() {
+      if (!pendingRedo) return;
+      const action = pendingRedo.action;
+      restoreGameState(pendingRedo.before);
+      pendingRedo = null;
+      showRedoControls(false);
+      setPAControlsLocked(false);
+      redoInProgress = true;
+      await action();
+      redoInProgress = false;
+    }
+
+    function recordPitcherAppearance(type, outsRecorded = null) {
+      const pitcher = getCurrentPitcherGameStats();
+      if (!pitcher) return;
+
+      pitcher.entered = true;
+      let staminaLoss = STAMINA_COSTS.plateAppearance;
+      if (type === 'single' || type === 'double' || type === 'triple' || type === 'home_run' || type === 'bunt_single') {
+        pitcher.h += 1;
+        staminaLoss += type === 'single' || type === 'bunt_single'
+          ? STAMINA_COSTS.single
+          : STAMINA_COSTS.walkOrExtraBaseHit;
+      } else if (type === 'walk') {
+        pitcher.bb += 1;
+        staminaLoss += STAMINA_COSTS.walkOrExtraBaseHit;
+      } else if (type === 'strikeout') {
+        pitcher.k += 1;
+      }
+
+      if (outsRecorded !== null) {
+        pitcher.outs += outsRecorded;
+      } else if (type === 'double_play') {
+        pitcher.outs += 2;
+      } else if (type === 'out' || type === 'strikeout' || type === 'productive_out' || type === 'bunt_out') {
+        pitcher.outs += 1;
+      }
+      const totalStaminaLoss = staminaLoss * pitcher.staminaMultiplier;
+      pitcher.stamina = Math.max(0, pitcher.stamina - totalStaminaLoss);
+      updateCurrentPitcher();
+    }
+
+    function formatInnings(outs) {
+      return `${Math.floor(outs / 3)}.${outs % 3}`;
+    }
+
+    function toBoxScorePitcher(pitcher) {
+      return {
+        name: pitcher.name,
+        decision: pitcher.decision,
+        ip: formatInnings(pitcher.outs),
+        h: pitcher.h,
+        er: pitcher.er,
+        bb: pitcher.bb,
+        k: pitcher.k,
+      };
+    }
+
+    function getCurrentBatterStats() {
+      const current = state.top ? state.awayBatter : state.homeBatter;
+      const team = state.top ? gameStats.away : gameStats.home;
+      const lineup = state.top ? activeLineups.away : activeLineups.home;
+      return team.find(player => player.name === lineup[current].name);
+    }
+
+    function addRunsToLineScore(scored) {
+      if (!scored) return;
+      const line = ensureLinescoreEntry();
+      if (state.top) {
+        line.away += scored;
+      } else {
+        if (line.home === null) line.home = 0;
+        line.home += scored;
+      }
+    }
+
+    function recordPlateAppearance(type, runScored = 0, outsRecorded = null, earnedRunPitcherIds = null) {
+      const batter = getCurrentBatterStats();
+      if (!batter) return;
+      if (type === 'double_play' || type === 'productive_out' || type === 'bunt_out' || type === 'strikeout' || type === 'out') {
+        const team = state.top ? 'away' : 'home';
+        const batterIndex = state.top ? state.awayBatter : state.homeBatter;
+        const lineup = activeLineups[team];
+        state.lastOutBatterByTeam[team] = lineup[batterIndex].name;
+      }
+      recordPitcherAppearance(type, outsRecorded);
+      creditEarnedRuns(earnedRunPitcherIds || Array(runScored).fill(getCurrentPitcherId()));
+      const isWalk = type === 'walk';
+      const isStolen = type.startsWith('steal');
+      const isBuntSingle = type === 'bunt_single';
+      const isBuntOut = type === 'bunt_out';
+      const isDoublePlay = type === 'double_play';
+      const isStrikeout = type === 'strikeout';
+      const isOut = type === 'out';
+      const isProductive = type === 'productive_out';
+      const isHomeRun = type === 'home_run';
+
+      if (!isWalk && !isStolen) {
+        batter.ab += 1;
+      }
+
+      if (type === 'single' || type === 'double' || type === 'triple' || isHomeRun || isBuntSingle) {
+        batter.h += 1;
+        if (isHomeRun) {
+          batter.hr += 1;
+        }
+        if (runScored > 0) {
+          batter.rbi += runScored;
+        }
+      } else if (isWalk) {
+        batter.bb += 1;
+        if (runScored > 0) {
+          batter.rbi += runScored;
+        }
+      } else if (isStrikeout) {
+        batter.k += 1;
+      } else if (isProductive || isBuntOut) {
+        if (runScored > 0) {
+          batter.rbi += runScored;
+        }
+      } else if (isDoublePlay || isOut) {
+        // no extra counting beyond AB
+      }
+    }
+
+    function buildBoxScoreSummary() {
+      const awayHits = gameStats.away.reduce((sum, p) => sum + p.h, 0);
+      const homeHits = gameStats.home.reduce((sum, p) => sum + p.h, 0);
+      return {
+        away: { ...GAME_TEAMS.away, score: state.score[0] },
+        home: { ...GAME_TEAMS.home, score: state.score[1] },
+        innings: gameStats.linescore,
+        rh: {
+          away: { r: state.score[0], h: awayHits },
+          home: { r: state.score[1], h: homeHits },
+        },
+        hitters: {
+          away: gameStats.away,
+          home: gameStats.home,
+        },
+        pitchers: {
+          away: gameStats.pitchers.away
+            .filter(pitcher => pitcher.entered)
+            .sort((first, second) => first.entryOrder - second.entryOrder)
+            .map(toBoxScorePitcher),
+          home: gameStats.pitchers.home
+            .filter(pitcher => pitcher.entered)
+            .sort((first, second) => first.entryOrder - second.entryOrder)
+            .map(toBoxScorePitcher),
+        },
+      };
+    }
+
+    function saveBoxScoreSummary() {
+      localStorage.setItem(BOX_SCORE_KEY, JSON.stringify(buildBoxScoreSummary()));
+    }
+
+    // Expose functions to global scope so onclick handlers work
+    window.toggleBase = toggleBase;
+    window.simAB = simAB;
+    window.resetGame = resetGame;
+
+    function updateCurrentBatter() {
+      const current = state.top ? state.awayBatter : state.homeBatter;
+      const lineup = state.top ? activeLineups.away : activeLineups.home;
+      const batter = lineup[current];
+      currentBatterEl.textContent = `${current + 1}. ${batter.name}`;
+      avgInput.value = batter.avg.toFixed(3);
+      obpInput.value = batter.obp.toFixed(3);
+      singleInput.value = batter.single.toFixed(3);
+      doubleInput.value = batter.double.toFixed(3);
+      tripleInput.value = batter.triple.toFixed(3);
+      hrInput.value = batter.hr.toFixed(3);
+
+      walkInput.value = batter.walkPct.toFixed(3);
+      updateCurrentPitcher();
+      updatePinchHitterOptions();
+    }
+
+    function getCurrentPitcherDetails() {
+      const homePitching = state.top;
+      const pitchers = homePitching ? homeBullpen : awayBullpen;
+      const currentIndex = homePitching ? state.homePitcher : state.awayPitcher;
+      const usedPitchers = homePitching ? state.usedHomePitchers : state.usedAwayPitchers;
+      return { pitchers, currentIndex, usedPitchers };
+    }
+
+    function updatePitcherOptions() {
+      const { pitchers, usedPitchers } = getCurrentPitcherDetails();
+      pitcherSelect.replaceChildren();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select pitcher...';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      pitcherSelect.appendChild(placeholder);
+      pitchers.forEach((pitcher, index) => {
+        if (usedPitchers.includes(index)) return;
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${pitcher.name} (ERA ${pitcher.era.toFixed(2)}, stamina ${pitcher.stamina})`;
+        pitcherSelect.appendChild(option);
+      });
+      pitcherSelect.disabled = pitcherSelect.options.length === 1;
+    }
+
+    function updateCurrentPitcher() {
+      const { pitchers, currentIndex } = getCurrentPitcherDetails();
+      const pitcher = pitchers[currentIndex];
+      const currentPitcherStats = getCurrentPitcherGameStats();
+      currentPitcherEl.textContent = pitcher.name;
+      eraInput.value = pitcher.era.toFixed(2);
+      staminaInput.value = currentPitcherStats.stamina;
+      effectivenessInput.value = getPitcherEffectiveness(currentPitcherStats);
+      updatePitcherOptions();
+    }
+
+    function updatePinchHitterOptions() {
+      const team = state.top ? 'away' : 'home';
+      const bench = state.top ? awayBench : homeBench;
+      const used = usedBenchPlayers[team];
+      pinchHitterSelect.replaceChildren();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select pinch hitter...';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      pinchHitterSelect.appendChild(placeholder);
+      bench.forEach((player, index) => {
+        if (used.includes(index)) return;
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${player.name} (${player.pos})`;
+        pinchHitterSelect.appendChild(option);
+      });
+      pinchHitterSelect.disabled = pinchHitterSelect.options.length === 1;
+    }
+
+    function advanceBatter() {
+      const lineup = state.top ? activeLineups.away : activeLineups.home;
+      if (state.top) {
+        state.awayBatter = (state.awayBatter + 1) % lineup.length;
+      } else {
+        state.homeBatter = (state.homeBatter + 1) % lineup.length;
+      }
+      updateCurrentBatter();
+    }
+
+    function toggleBase(n) {
+      if (pendingRedo) return;
+      const baseIndex = n - 1;
+      state.runners[baseIndex] = !state.runners[baseIndex];
+      state.runnerPitchers[baseIndex] = state.runners[baseIndex] ? getCurrentPitcherId() : null;
+      render();
+    }
+
+    function getProductiveOutResult() {
+      const [first, second, third] = state.runners;
+      let scored = 0;
+      let productive = false;
+      let newRunners = [first, second, third];
+
+      if (!first && !second && !third) {
+        return { scored, productive, newRunners };
+      }
+
+      if (first && second && third) {
+        const roll = Math.random();
+        if (roll < 0.30) {
+          newRunners = [false, true, true];
+          scored = 1;
+          productive = true;
+        } else if (roll < 0.50) {
+          newRunners = [true, false, true];
+          scored = 1;
+          productive = true;
+        } else if (roll < 0.55) {
+          newRunners = [true, true, false];
+          scored = 1;
+          productive = true;
+        } else {
+          newRunners = [true, true, true];
+        }
+      } else if (first && second && !third) {
+        const roll = Math.random();
+        if (roll < 0.30) {
+          newRunners = [false, true, true];
+          productive = true;
+        } else if (roll < 0.50) {
+          newRunners = [true, false, true];
+          productive = true;
+        } else {
+          newRunners = [true, true, false];
+        }
+      } else if (!first && second && third) {
+        const roll = Math.random();
+        if (roll < 0.50) {
+          newRunners = [false, false, true];
+          scored = 1;
+          productive = true;
+        } else if (roll < 0.55) {
+          newRunners = [false, true, false];
+          scored = 1;
+          productive = true;
+        } else {
+          newRunners = [false, true, true];
+        }
+      } else if (first && !second && third) {
+        const firstAdvance = Math.random() < 0.30;
+        const thirdScores = Math.random() < 0.55;
+        newRunners = [false, firstAdvance, !thirdScores];
+        scored = thirdScores ? 1 : 0;
+        productive = firstAdvance || thirdScores;
+      } else if (first && !second && !third) {
+        if (Math.random() < 0.30) {
+          newRunners = [false, true, false];
+          productive = true;
+        } else {
+          newRunners = [true, false, false];
+        }
+      } else if (!first && second && !third) {
+        if (Math.random() < 0.50) {
+          newRunners = [false, false, true];
+          productive = true;
+        } else {
+          newRunners = [false, true, false];
+        }
+      } else if (!first && !second && third) {
+        if (Math.random() < 0.55) {
+          newRunners = [false, false, false];
+          scored = 1;
+          productive = true;
+        } else {
+          newRunners = [false, false, true];
+        }
+      }
+
+      return { scored, productive, newRunners };
+    }
+
+    function applyScoredAndMaybeWalkOff(scored, isHomeRun) {
+      if (!scored) return false;
+      // Walk-off logic: only applies in bottom of 9th or later
+      if (!state.top && state.inning >= 9) {
+        const homeBefore = state.score[1];
+        const away = state.score[0];
+        const newHome = homeBefore + scored;
+        if (newHome > away) {
+          state.score[1] = newHome;
+          if (previewingRedo) {
+            previewedGameEnd = true;
+            return false;
+          }
+          saveBoxScoreSummary();
+          loadBoxScoreUI();
+          resetGame();
+          return true;
+        }
+      }
+      if (state.top) state.score[0] += scored; else state.score[1] += scored;
+      return false;
+    }
+
+    function loadBoxScoreUI() {
+      saveBoxScoreSummary();
+      window.location.href = '/boxscore';
+    }
+
+    function resolveAutomaticOut() {
+      const badge = document.getElementById('outcome-badge');
+      const shouldAdvance = !state.gameReset;
+      badge.className = 'outcome-badge automatic_out';
+      badge.textContent = 'Automatic Out';
+      recordPlateAppearance('out', 0);
+      state.outs++;
+
+      if (state.outs >= 3) {
+        state.outs = 0;
+        state.runners = [false, false, false];
+        state.runnerPitchers = [null, null, null];
+        if (shouldAdvance) advanceBatter();
+        advanceInning();
+        updateCurrentBatter();
+      } else if (shouldAdvance) {
+        advanceBatter();
+      }
+
+      state.gameReset = false;
+      render();
+    }
+
+    function simAB(type) {
+      if (pendingRedo && type !== 'automatic_out') return;
+      if (type === 'automatic_out') {
+        resolveAutomaticOut();
+        return;
+      }
+
+      const badge = document.getElementById('outcome-badge');
+      badge.className = 'outcome-badge ' + type;
+      let shouldAdvance = !state.gameReset;
+      let inningChanged = false;
+
+      if (type === 'out') {
+        //added DP logic
+        const isDPSituation = state.runners[0] && state.outs < 2;
+        const isDoublePlay = isDPSituation && Math.random() < 0.11;
+
+        if (isDoublePlay) {
+          badge.textContent = 'Double play';
+          badge.className = 'outcome-badge double_play';
+          const wasSecond = state.runners[1];
+          const wasThird = state.runners[2];
+          const originalPitchers = [...state.runnerPitchers];
+          const outsAfterDoublePlay = state.outs + 2;
+          const scoredOnDoublePlay = wasThird && outsAfterDoublePlay < 3 ? 1 : 0;
+
+          recordPlateAppearance('double_play', scoredOnDoublePlay, null, scoredOnDoublePlay ? [originalPitchers[2]] : []);
+          state.outs += 2;
+          state.runners[0] = false;
+          state.runners[1] = false;
+          state.runners[2] = wasSecond;
+          state.runnerPitchers = [null, null, wasSecond ? originalPitchers[1] : null];
+
+          if (scoredOnDoublePlay) {
+            addRunsToLineScore(1);
+            if (applyScoredAndMaybeWalkOff(1, false)) return; //effectively replaces if(state.top) state.score[0] += 1; else state.score[1] += 1;
+            state.runners[2] = wasSecond;
+          }
+
+          if (state.outs >= 3) {
+            state.outs = 0;
+            state.runners = [false, false, false];
+            state.runnerPitchers = [null, null, null];
+            if (shouldAdvance) advanceBatter();
+            advanceInning();
+            inningChanged = true;
+            shouldAdvance = false;
+          }
+        } else {
+          const oldRunners = [...state.runners];
+          const oldPitchers = [...state.runnerPitchers];
+          const { scored, productive, newRunners } = getProductiveOutResult();
+          state.runners = newRunners;
+          state.runnerPitchers = advanceRunnerPitchers(oldRunners, oldPitchers, newRunners, scored > 0 ? [2] : []);
+          if (productive) {
+            badge.textContent = 'Productive out';
+            badge.className = 'outcome-badge productive_out';
+            const actualRbi = state.outs < 2 ? scored : 0;
+            recordPlateAppearance('productive_out', actualRbi, null, actualRbi ? [oldPitchers[2]] : []);
+            if (state.outs < 2) {
+              addRunsToLineScore(scored);
+              if (applyScoredAndMaybeWalkOff(scored, false)) return; //scored = 1, isHR = false
+            }
+          } else {
+            const roll = Math.random();
+            if (roll < 0.50) {
+              badge.textContent = 'Strikeout';
+              recordPlateAppearance('strikeout', 0);
+            }
+            else{
+              badge.textContent = 'Out';
+              recordPlateAppearance('out', 0);
+            }
+          }
+
+          state.outs++;
+          if (state.outs >= 3) {
+            state.outs = 0;
+            state.runners = [false, false, false];
+            state.runnerPitchers = [null, null, null];
+            if (shouldAdvance) advanceBatter();
+            advanceInning();
+            inningChanged = true;
+            shouldAdvance = false;
+          }
+        }
+      } else if (type === 'single') {
+        badge.textContent = 'Single';
+        const wasThird = state.runners[2];
+        const wasSecond = state.runners[1];
+        const wasFirst = state.runners[0];
+        const originalPitchers = [...state.runnerPitchers];
+        let scored = 0;
+        const earnedRunPitcherIds = [];
+
+        if (wasThird) {
+          scored += 1;
+          earnedRunPitcherIds.push(originalPitchers[2]);
+        }
+
+        //OG state saved in WasFirst, WasSecond, etc, this clears data for all runners and 
+        //we will reassign based on who advanced where
+        state.runners[2] = false;
+        state.runners[1] = false;
+        state.runners[0] = false;
+        state.runnerPitchers = [null, null, null];
+
+        if (wasSecond) {
+          if (Math.random() < baseRates.singleSecondToHome) {
+            scored += 1;
+            earnedRunPitcherIds.push(originalPitchers[1]);
+          } else {
+            state.runners[2] = true;
+            state.runnerPitchers[2] = originalPitchers[1];
+          }
+        }
+
+        if (wasFirst) {
+          if (Math.random() < baseRates.singleFirstToThird) {
+            state.runners[2] = true;
+            state.runnerPitchers[2] = originalPitchers[0];
+          } else {
+            state.runners[1] = true;
+            state.runnerPitchers[1] = originalPitchers[0];
+          }
+        }
+
+        state.runners[0] = true;
+        state.runnerPitchers[0] = getCurrentPitcherId();
+        recordPlateAppearance('single', scored, null, earnedRunPitcherIds);
+        addRunsToLineScore(scored);
+        if (applyScoredAndMaybeWalkOff(scored, false)) return;
+      } else if (type === 'walk') {
+        badge.textContent = 'Walk';
+        const originalPitchers = [...state.runnerPitchers];
+        const currentPitcherId = getCurrentPitcherId();
+        const allFull = state.runners[0] && state.runners[1] && state.runners[2];
+        if (allFull) {
+          recordPlateAppearance('walk', 1, null, [originalPitchers[2]]);
+          addRunsToLineScore(1);
+          if (applyScoredAndMaybeWalkOff(1, false)) return;
+          state.runners = [true, true, true];
+          state.runnerPitchers = [currentPitcherId, originalPitchers[0], originalPitchers[1]];
+        } else {
+          recordPlateAppearance('walk', 0);
+          if (state.runners[0] && state.runners[1]) {
+            state.runners[2] = true;
+            state.runnerPitchers[2] = originalPitchers[1];
+            state.runnerPitchers[1] = originalPitchers[0];
+            state.runners[0] = true;
+            state.runnerPitchers[0] = currentPitcherId;
+          } else if (state.runners[0]) {
+            state.runners[1] = true;
+            state.runnerPitchers[1] = originalPitchers[0];
+            state.runners[0] = true;
+            state.runnerPitchers[0] = currentPitcherId;
+          } else {
+            state.runners[0] = true;
+            state.runnerPitchers[0] = currentPitcherId;
+          }
+        }
+      } else if (type === 'double') {
+        badge.textContent = 'Double';
+        const wasThird = state.runners[2];
+        const wasSecond = state.runners[1];
+        const wasFirst = state.runners[0];
+        const originalPitchers = [...state.runnerPitchers];
+        let scored = 0;
+        const earnedRunPitcherIds = [];
+
+        if (wasThird) {
+          scored += 1;
+          earnedRunPitcherIds.push(originalPitchers[2]);
+        }
+        if (wasSecond) {
+          scored += 1;
+          earnedRunPitcherIds.push(originalPitchers[1]);
+        }
+        const firstScores = wasFirst && Math.random() < baseRates.doubleFirstToHome;
+        if (firstScores) {
+          scored += 1;
+          earnedRunPitcherIds.push(originalPitchers[0]);
+        }
+
+        state.runners[2] = wasFirst && !firstScores; // If first doesn't score, they end up on third. 
+        state.runnerPitchers[2] = state.runners[2] ? originalPitchers[0] : null;
+        state.runners[1] = true; //runner now on 2nd
+        state.runnerPitchers[1] = getCurrentPitcherId();
+        state.runners[0] = false; //no runner on first
+        state.runnerPitchers[0] = null;
+        recordPlateAppearance('double', scored, null, earnedRunPitcherIds);
+        addRunsToLineScore(scored);
+        if (applyScoredAndMaybeWalkOff(scored, false)) return;
+      } else if (type === 'triple') {
+        badge.textContent = 'Triple';
+        const originalPitchers = [...state.runnerPitchers];
+        const scored = (state.runners[2] ? 1 : 0) + (state.runners[1] ? 1 : 0) + (state.runners[0] ? 1 : 0);
+        const earnedRunPitcherIds = originalPitchers.filter((pitcherId, index) => state.runners[index] && pitcherId);
+        state.runners[2] = true;
+        state.runnerPitchers[2] = getCurrentPitcherId();
+        state.runners[1] = false;
+        state.runnerPitchers[1] = null;
+        state.runners[0] = false;
+        state.runnerPitchers[0] = null;
+        recordPlateAppearance('triple', scored, null, earnedRunPitcherIds);
+        addRunsToLineScore(scored);
+        if (applyScoredAndMaybeWalkOff(scored, false)) return;
+      } else if (type == 'home_run') {
+        badge.textContent = 'Home run';
+        const originalPitchers = [...state.runnerPitchers];
+        const scored = 1 + (state.runners[2] ? 1 : 0) + (state.runners[1] ? 1 : 0) + (state.runners[0] ? 1 : 0);
+        const earnedRunPitcherIds = originalPitchers.filter((pitcherId, index) => state.runners[index] && pitcherId);
+        earnedRunPitcherIds.push(getCurrentPitcherId());
+        state.runners = [false, false, false];
+        state.runnerPitchers = [null, null, null];
+        recordPlateAppearance('home_run', scored, null, earnedRunPitcherIds);
+        addRunsToLineScore(scored);
+        if (applyScoredAndMaybeWalkOff(scored, true)) return;
+      }
+
+      if (shouldAdvance) advanceBatter();
+      if (inningChanged) updateCurrentBatter();
+      state.gameReset = false;
+      render();
+    }
+
+    function advanceInning() {
+      // If we just finished the top of the 9th or later and the home team is already winning,
+      // the game ends early (no bottom half needed).
+      if (state.inning >= 9 && state.top && state.score[1] > state.score[0]) { //if state.top WHEN advanceInning() IS CALLED, so going into the bottom of the inning
+        if (previewingRedo) {
+          previewedGameEnd = true;
+          return;
+        }
+        loadBoxScoreUI();
+        resetGame();
+        return;
+      }
+      // Existing end-of-game check after the bottom half
+      if (state.inning >= 9 && !state.top && state.score[0] !== state.score[1]) {
+        if (previewingRedo) {
+          previewedGameEnd = true;
+          return;
+        }
+        loadBoxScoreUI();
+        resetGame();
+        return;
+      }
+      if (!state.top) state.inning++;
+      state.top = !state.top;
+      state.outs = 0;
+      state.balls = 0;
+      state.strikes = 0;
+      state.runners = [false, false, false];
+      state.runnerPitchers = [null, null, null];
+      if (state.inning >= 10) {
+        placeExtraInningRunner();
+      }
+      if (!state.top) {
+        const line = ensureLinescoreEntry();
+        if (line.home === null) line.home = 0;
+      }
+    }
+
+    function placeExtraInningRunner() {
+      const battingTeam = state.top ? 'away' : 'home';
+      if (!state.lastOutBatterByTeam[battingTeam]) return;
+      state.runners[1] = true;
+      state.runnerPitchers[1] = null;
+    }
+
+    function resetGame() {
+      pendingRedo = null;
+      redoInProgress = false;
+      previewedGameEnd = false;
+      state.runners = [false, false, false]; state.runnerPitchers = [null, null, null]; state.outs = 0; state.balls = 0; state.strikes = 0;
+      state.inning = 1; state.top = true; state.score = [0, 0]; state.awayBatter = 0; state.homeBatter = 0;
+      state.lastOutBatterByTeam = { away: null, home: null };
+      state.homePitcher = 0; state.awayPitcher = 0; state.usedHomePitchers = [0]; state.usedAwayPitchers = [0]; state.gameReset = true;
+      activeLineups.away.splice(0, activeLineups.away.length, ...awayLineup.map(player => applyHitterModifiers(player)));
+      activeLineups.home.splice(0, activeLineups.home.length, ...homeLineup.map(player => applyHitterModifiers(player)));
+      usedBenchPlayers.away = [];
+      usedBenchPlayers.home = [];
+      gameStats.away = lineupToHitters(awayLineup);
+      gameStats.home = lineupToHitters(homeLineup);
+      gameStats.pitchers.away = createPitcherGameStats(awayBullpen);
+      gameStats.pitchers.home = createPitcherGameStats(homeBullpen);
+      gameStats.linescore = createInitialLinescore();
+      document.getElementById('outcome-badge').className = 'outcome-badge';
+      document.getElementById('outcome-badge').textContent = '—';
+      pitcherSelect.style.display = 'none';
+      pinchHitterSelect.style.display = 'none';
+      showRedoControls(false);
+      setPAControlsLocked(false);
+      updateCurrentBatter();
+      render();
+    }
+
+    function render() {
+      [1, 2, 3].forEach(n => {
+        const el = document.getElementById('base' + n);
+        el.classList.toggle('occupied', state.runners[n - 1]);
+      });
+      document.getElementById('outs-val').textContent = state.outs;
+      document.getElementById('inning-val').textContent = (state.top ? 'Top ' : 'Bot ') + state.inning;
+      document.getElementById('score-val').textContent = state.score[0] + ' – ' + state.score[1];
+      document.getElementById('count-val').textContent = state.balls + '-' + state.strikes;
+      renderStealBtn();
+    }
+
+    function resultToSimAB(simulatorResult) {
+      // Map simulator result strings to simAB types
+      const mapping = {
+        'Single': 'single',
+        'Double': 'double',
+        'Triple': 'triple',
+        'HomeRun': 'home_run',
+        'Walk': 'walk',
+        'Out': 'out'
+      };
+      return mapping[simulatorResult] || 'out';
+    }
+
+    async function performSwing() {
+      const lineup = state.top ? activeLineups.away : activeLineups.home;
+      const current = state.top ? state.awayBatter : state.homeBatter;
+      const batter = lineup[current];
+      const avg = batter.avg;
+      const walkPct = batter.walkPct;
+      const singlePct = parseFloat(singleInput.value);
+      const doublePct = parseFloat(doubleInput.value);
+      const triplePct = parseFloat(tripleInput.value);
+      const hrPct = parseFloat(hrInput.value);
+
+      // Run 1 plate appearance
+      const data = runSimulation({ avg, walkPct, plateAppearances: 1, singlePct, doublePct, triplePct, hrPct });
+      // Get the outcome from the counts (should be exactly 1 outcome)
+      for (const [outcome, count] of Object.entries(data.counts)) {
+        if (count > 0) {
+          const simABType = resultToSimAB(outcome);
+          simAB(simABType);
+          break;
+        }
+      }
+    }
+
+    swingBtn.addEventListener('click', () => startRedoablePA(performSwing));
+
+    pinchHitterBtn.addEventListener('click', () => {
+      if (pendingRedo) return;
+      if (pinchHitterSelect.disabled) return;
+      pinchHitterSelect.style.display = pinchHitterSelect.style.display === 'inline-block' ? 'none' : 'inline-block';
+      if (pinchHitterSelect.style.display === 'inline-block') pinchHitterSelect.focus();
+    });
+
+    pinchHitterSelect.addEventListener('change', () => {
+      if (pendingRedo) return;
+      const selectedIndex = Number(pinchHitterSelect.value);
+      if (!Number.isInteger(selectedIndex)) return;
+
+      const team = state.top ? 'away' : 'home';
+      const bench = state.top ? awayBench : homeBench;
+      const used = usedBenchPlayers[team];
+      if (used.includes(selectedIndex)) return;
+
+      const lineup = activeLineups[team];
+      const current = state.top ? state.awayBatter : state.homeBatter;
+      const replacement = applyHitterModifiers(bench[selectedIndex]);
+      lineup[current] = replacement;
+      gameStats[team].push(lineupToHitters([replacement])[0]);
+      used.push(selectedIndex);
+      pinchHitterSelect.style.display = 'none';
+      updateCurrentBatter();
+    });
+
+    pitchingChangeBtn.addEventListener('click', () => {
+      if (pendingRedo) return;
+      if (pitcherSelect.disabled) return;
+      pitcherSelect.style.display = pitcherSelect.style.display === 'inline-block' ? 'none' : 'inline-block';
+      if (pitcherSelect.style.display === 'inline-block') pitcherSelect.focus();
+    });
+
+    pitcherSelect.addEventListener('change', () => {
+      if (pendingRedo) return;
+      const selectedIndex = Number(pitcherSelect.value);
+      if (!Number.isInteger(selectedIndex)) return;
+      const { usedPitchers } = getCurrentPitcherDetails();
+      if (usedPitchers.includes(selectedIndex)) return;
+
+      if (state.top) {
+        state.homePitcher = selectedIndex;
+        state.usedHomePitchers.push(selectedIndex);
+        gameStats.pitchers.home[selectedIndex].entered = true;
+        gameStats.pitchers.home[selectedIndex].entryOrder = state.usedHomePitchers.length - 1;
+      } else {
+        state.awayPitcher = selectedIndex;
+        state.usedAwayPitchers.push(selectedIndex);
+        gameStats.pitchers.away[selectedIndex].entered = true;
+        gameStats.pitchers.away[selectedIndex].entryOrder = state.usedAwayPitchers.length - 1;
+      }
+      pitcherSelect.style.display = 'none';
+      updateCurrentPitcher();
+    });
+
+    function performBunt() {
+      // Option 2: Only try to get the lead runner out. If out, double play (lead runner and batter out), others advance, no run scores. If safe, all runners advance, batter out, runs score as appropriate.
+      const badge = document.getElementById('outcome-badge');
+      badge.className = 'outcome-badge out';
+      let scored = 0;
+      let outsAdded = 0;
+      let inningChanged = false;
+      // Save runner state before play
+      const runners = [state.runners[0], state.runners[1], state.runners[2]];
+      const runnerPitchers = [...state.runnerPitchers];
+      // 10% chance batter is safe, all runners advance
+      if (Math.random() < 0.10) {
+        badge.textContent = 'Bunt single';
+        if (runners[2]) scored += 1;
+        state.runners[2] = runners[1];
+        state.runners[1] = runners[0];
+        state.runners[0] = true;
+        state.runnerPitchers = [getCurrentPitcherId(), runnerPitchers[0], runnerPitchers[1]];
+        outsAdded = 0;
+        recordPlateAppearance('bunt_single', scored, null, scored ? [runnerPitchers[2]] : []);
+        addRunsToLineScore(scored);
+      } else {
+        // Find lead runner (3rd, then 2nd, then 1st)
+        let leadIdx = runners[2] ? 2 : (runners[1] ? 1 : (runners[0] ? 0 : null));
+        let advanceProb = leadIdx === 2 ? 0.70 : (leadIdx === 1 ? 0.85 : (leadIdx === 0 ? 0.90 : null));
+        let leadSafe = true;
+        if (leadIdx !== null) {
+          leadSafe = Math.random() < advanceProb;
+        }
+        // Prepare new base state, all false
+        let newRunners = [false, false, false];
+        // If double play (lead runner out)
+        if (leadIdx !== null && !leadSafe) {
+          outsAdded = (state.outs === 2) ? 1 : 2;
+          // Only non-lead runners advance one base
+          if (leadIdx === 2) {
+            // 2nd to 3rd
+            if (runners[1]) newRunners[2] = true;
+            // 1st to 2nd
+            if (runners[0]) newRunners[1] = true;
+          } else if (leadIdx === 1) {
+            // 1st to 2nd
+            if (runners[0]) newRunners[1] = true;
+          }
+          // Batter out at first
+          // No run scores on double play
+          badge.textContent = 'Bunt double play';
+          state.runnerPitchers = advanceRunnerPitchers(runners, runnerPitchers, newRunners);
+          recordPlateAppearance('double_play', 0, outsAdded, []);
+        } else {
+          // Lead runner safe or no runners: all runners advance, batter out
+          outsAdded = 1;
+          // 2nd to 3rd
+          if (runners[1]) newRunners[2] = true;
+          // 1st to 2nd
+          if (runners[0]) newRunners[1] = true;
+          // Batter out at first
+          // Only score if not 3rd out
+          if (runners[2] && state.outs < 2) scored += 1;
+          badge.textContent = 'Bunt out';
+          state.runnerPitchers = advanceRunnerPitchers(runners, runnerPitchers, newRunners, scored ? [2] : []);
+          recordPlateAppearance('bunt_out', scored, null, scored ? [runnerPitchers[2]] : []);
+          addRunsToLineScore(scored);
+        }
+        // Update runners
+        state.runners[0] = false;
+        state.runners[1] = newRunners[1];
+        state.runners[2] = newRunners[2];
+        state.runnerPitchers[0] = null;
+      }
+      // Update outs and score
+      state.outs += outsAdded;
+      if (applyScoredAndMaybeWalkOff(scored, false)) return;
+      // End inning if outs >= 3
+      if (state.outs >= 3) {
+        state.outs = 0;
+        state.runners = [false, false, false];
+        state.runnerPitchers = [null, null, null];
+        advanceBatter();
+        advanceInning();
+        inningChanged = true;
+      } else {
+        advanceBatter();
+      }
+      if (inningChanged) updateCurrentBatter();
+      state.gameReset = false;
+      render();
+    }
+
+    buntBtn.addEventListener('click', () => startRedoablePA(performBunt));
+
+    redoBtn.addEventListener('click', redoPendingResult);
+    acceptResultBtn.addEventListener('click', acceptRedoResult);
+
+
+    // --- STEAL LOGIC ---
+    // Steal base rates
+    const stealRates = { 1: 0.75, 2: 0.40, 3: 0.05 };
+
+    function getStealOptions() {
+      // Returns array of { label, value } for possible steals
+      // const r = state.runners;
+      // const options = [];
+      // if (r[0] && !r[1]) options.push({ label: 'Steal 2nd', value: 'steal2' });
+      // if (r[1] && !r[2]) options.push({ label: 'Steal 3rd', value: 'steal3' });
+      // if (r[0] && r[1] && !r[2]) options.push({ label: 'Steal 2nd & 3rd', value: 'steal23' });
+      // if (r[2]) options.push({ label: 'Steal Home', value: 'stealHome' });
+      // return options;
+
+
+      const r = state.runners;
+      const options = [];
+
+      // Single steals — always add if that runner can advance
+      if (r[0] && !r[1]) options.push({ label: 'Steal 2nd', value: 'steal2' });
+      if (r[1] && !r[2]) options.push({ label: 'Steal 3rd', value: 'steal3' });
+      if (r[2]) options.push({ label: 'Steal home', value: 'stealHome' });
+
+      // Multi-runner steals
+      if (r[0] && r[1] && !r[2]) options.push({ label: 'Steal 2nd & 3rd', value: 'steal23' });
+      if (r[1] && r[2]) options.push({ label: 'Steal 3rd & home', value: 'steal3Home' });
+      if (r[0] && r[2] && !r[1]) options.push({ label: 'Steal 2nd & home', value: 'steal2Home' });
+      if (r[0] && r[1] && r[2]) options.push({ label: 'Steal 2nd, 3rd & home', value: 'steal23Home' });
+
+      return options;
+
+    }
+
+    function renderStealBtn() {
+      const container = document.getElementById('stealBtnContainer');
+      const r = state.runners;
+      const options = getStealOptions();
+      container.innerHTML = '';
+      if (!r[0] && !r[1] && !r[2]) return; // No runners
+      if (options.length === 1) {
+        // Single option, plain button
+        container.innerHTML = `<button class="btn primary" id="stealBtn">Steal</button>`;
+        setTimeout(() => {
+          document.getElementById('stealBtn').onclick = () => handleSteal(options[0].value);
+        }, 0);
+      } else if (options.length > 1) {
+        // Dropdown
+        container.innerHTML = `
+          <div style="display:inline-block;position:relative;">
+            <button class="btn primary" id="stealBtn">Steal ▼</button>
+            <div id="stealDropdown" style="display:none;position:absolute;z-index:10;background:white;border:1px solid #ccc;min-width:120px;">
+            </div>
+          </div>
+        `;
+        setTimeout(() => {
+          const btn = document.getElementById('stealBtn');
+          const dd = document.getElementById('stealDropdown');
+          btn.onclick = () => {
+            dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+            dd.innerHTML = options.map(opt => `<div style='padding:6px 12px;cursor:pointer;' class='stealOpt' data-val='${opt.value}'>${opt.label}</div>`).join('');
+            Array.from(dd.getElementsByClassName('stealOpt')).forEach(el => {
+              el.onclick = (e) => { dd.style.display = 'none'; handleSteal(el.getAttribute('data-val')); };
+            });
+          };
+          document.addEventListener('click', function hideDD(e) {
+            if (!btn.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+          });
+        }, 0);
+      }
+    }
+
+    function handleSteal(type) {
+      if (pendingRedo) return;
+      const badge = document.getElementById('outcome-badge');
+      badge.className = 'outcome-badge';
+      let out = false, scored = 0;
+      const outsBefore = state.outs;
+      const runnerPitchersBefore = [...state.runnerPitchers];
+      // Only lead runner can be out
+      if (type === 'steal2') {
+        if (Math.random() < stealRates[1]) {
+          state.runners[1] = true; state.runners[0] = false;
+          state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          badge.textContent = 'Stole 2nd';
+        } else {
+          state.runners[0] = false;
+          state.runnerPitchers[0] = null;
+          state.outs++;
+          badge.textContent = 'Caught stealing 2nd';
+        }
+      } else if (type === 'steal3') {
+        if (Math.random() < stealRates[2]) {
+          state.runners[2] = true; state.runners[1] = false;
+          state.runnerPitchers[2] = runnerPitchersBefore[1]; state.runnerPitchers[1] = null;
+          badge.textContent = 'Stole 3rd';
+        } else {
+          state.runners[1] = false;
+          state.runnerPitchers[1] = null;
+          state.outs++;
+          badge.textContent = 'Caught stealing 3rd';
+        }
+      } else if (type === 'steal23') {
+        if (Math.random() < stealRates[2]) {
+          state.runners[2] = true; state.runners[1] = true; state.runners[0] = false;
+          state.runnerPitchers[2] = runnerPitchersBefore[1]; state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          badge.textContent = 'Double steal! Both safe';
+        } else {
+          state.runners[2] = false;
+          state.runners[1] = true;
+          state.runners[0] = false;
+          state.runnerPitchers[2] = null; state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          state.outs++;
+          badge.textContent = 'Double steal! Lead runner out at 3rd';
+        }
+      } else if (type === 'steal2Home') {
+        if (Math.random() < stealRates[3]) {
+          // Both safe (5% chance — stealRates[3] is already 0.05)
+          state.runners[2] = false;
+          state.runners[1] = true;
+          state.runners[0] = false;
+          state.runnerPitchers[2] = null; state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          scored = 1;
+          badge.textContent = 'Double steal! Both safe';
+        } else {
+          // Lead runner (home) out, trailing runner (2nd) safe
+          state.runners[2] = false;
+          state.runners[1] = true;
+          state.runners[0] = false;
+          state.runnerPitchers[2] = null; state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          state.outs++;
+          badge.textContent = 'Double steal! Lead runner caught at home';
+        }
+      }
+      else if (type === 'steal3Home') {
+        // 3rd steals home, 2nd steals 3rd — judge on the lead runner (home)
+        if (Math.random() < stealRates[3]) {
+          state.runners[2] = true;  // 2nd advances to 3rd
+          state.runners[1] = false;
+          state.runnerPitchers[2] = runnerPitchersBefore[1]; state.runnerPitchers[1] = null;
+          scored = 1;               // runner from 3rd scores
+          badge.textContent = 'Double steal! Both safe';
+        } else {
+          state.runners[2] = true; // trail runner (2nd) advances to third
+          state.runners[1] = false;
+          state.runners[0] = false;
+          state.runnerPitchers[2] = runnerPitchersBefore[1]; state.runnerPitchers[1] = null; state.runnerPitchers[0] = null;
+          state.outs++;
+          badge.textContent = 'Double steal! Lead runner caught at home';
+        }
+      } else if (type === 'steal23Home') {
+        // 3rd steals home, 1st and 2nd steal 2nd and 3rd — judge on the lead runner (home)
+        if (Math.random() < stealRates[3]) {
+          state.runners[2] = true;  // 2nd advances to 3rd
+          state.runners[1] = true;  // 1st advances to 2nd
+          state.runners[0] = false;
+          state.runnerPitchers[2] = runnerPitchersBefore[1]; state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          scored = 1;               // runner from 3rd scores
+          badge.textContent = 'Triple steal! Everybody is safe';
+        } else {
+          state.runners[2] = true; // 2nd advances to 3rd
+          state.runners[1] = true; // 1st advances to 2nd
+          state.runners[0] = false;
+          state.runnerPitchers[2] = runnerPitchersBefore[1]; state.runnerPitchers[1] = runnerPitchersBefore[0]; state.runnerPitchers[0] = null;
+          state.outs++; //lead runner (3rd) caught at home, but others advance
+          badge.textContent = 'Triple steal! Lead runner caught at home';
+        }
+      }else if (type === 'stealHome') {
+        if (Math.random() < stealRates[3]) {
+          state.runners[2] = false; scored = 1;
+          state.runnerPitchers[2] = null;
+          badge.textContent = 'Stole home!';
+        } else {
+          state.runners[2] = false;
+          state.runnerPitchers[2] = null;
+          state.outs++;
+          badge.textContent = 'Caught stealing home';
+        }
+      }
+      const pitcher = getCurrentPitcherGameStats();
+      pitcher.outs += state.outs - outsBefore;
+      creditEarnedRuns(scored ? [runnerPitchersBefore[2]] : []);
+      if (applyScoredAndMaybeWalkOff(scored, false)) return;
+      // End inning if outs >= 3
+      let inningChanged = false;
+      if (state.outs >= 3) {
+        state.outs = 0;
+        state.runners = [false, false, false];
+        state.runnerPitchers = [null, null, null];
+        advanceBatter();
+        advanceInning();
+        inningChanged = true;
+      }
+      render();
+      if (inningChanged) updateCurrentBatter();
+    }
+
+
+    render();
+    updateCurrentBatter();
+  </script>
+</body>
+
+</html>

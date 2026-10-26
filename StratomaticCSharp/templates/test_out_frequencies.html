@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Out Frequency Tests</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .test-section {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      border: 1px solid #ddd;
+    }
+    .result {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background: #f0f0f0;
+      border-radius: 3px;
+    }
+    .result.pass {
+      background: #d4edda;
+      color: #155724;
+    }
+    .result.fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .progress {
+      margin: 1rem 0;
+      font-size: 14px;
+      color: #666;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Out Frequency Tests</h1>
+  
+  <div class="test-section">
+    <h2>Test: Out Type Distribution (10,000 simulations)</h2>
+    <div id="test-out-distribution"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test: Out Type Distribution with Runners (10,000 simulations per scenario)</h2>
+    <div id="test-out-distribution-runners"></div>
+  </div>
+
+  <script>
+    // Game constants and functions extracted from baseball_diamond_ui.html
+    
+    function getProductiveOutResult(runners) {
+      const [first, second, third] = runners;
+      let scored = 0;
+      let productive = false;
+      let newRunners = [first, second, third];
+
+      if (!first && !second && !third) {
+        return { scored, productive, newRunners };
+      }
+
+      if (first && second && third) {
+        const roll = Math.random();
+        if (roll < 0.30) {
+          newRunners = [false, true, true];
+          scored = 1;
+          productive = true;
+        } else if (roll < 0.50) {
+          newRunners = [true, false, true];
+          scored = 1;
+          productive = true;
+        } else if (roll < 0.55) {
+          newRunners = [true, true, false];
+          scored = 1;
+          productive = true;
+        } else {
+          newRunners = [true, true, true];
+        }
+      } else if (first && second && !third) {
+        const roll = Math.random();
+        if (roll < 0.30) {
+          newRunners = [false, true, true];
+          productive = true;
+        } else if (roll < 0.50) {
+          newRunners = [true, false, true];
+          productive = true;
+        } else {
+          newRunners = [true, true, false];
+        }
+      } else if (!first && second && third) {
+        const roll = Math.random();
+        if (roll < 0.50) {
+          newRunners = [false, false, true];
+          scored = 1;
+          productive = true;
+        } else if (roll < 0.55) {
+          newRunners = [false, true, false];
+          scored = 1;
+          productive = true;
+        } else {
+          newRunners = [false, true, true];
+        }
+      } else if (first && !second && third) {
+        const firstAdvance = Math.random() < 0.30;
+        const thirdScores = Math.random() < 0.55;
+        newRunners = [false, firstAdvance, !thirdScores];
+        scored = thirdScores ? 1 : 0;
+        productive = firstAdvance || thirdScores;
+      } else if (first && !second && !third) {
+        if (Math.random() < 0.30) {
+          newRunners = [false, true, false];
+          productive = true;
+        } else {
+          newRunners = [true, false, false];
+        }
+      } else if (!first && second && !third) {
+        if (Math.random() < 0.50) {
+          newRunners = [false, false, true];
+          productive = true;
+        } else {
+          newRunners = [false, true, false];
+        }
+      } else if (!first && !second && third) {
+        if (Math.random() < 0.55) {
+          newRunners = [false, false, false];
+          scored = 1;
+          productive = true;
+        } else {
+          newRunners = [false, false, true];
+        }
+      }
+
+      return { scored, productive, newRunners };
+    }
+
+    function simulateOutOutcome(runners, outs) {
+      // Mirrors the logic in simAB('out')
+      const isDPSituation = runners[0] && outs < 2;
+      const isDoublePlay = isDPSituation && Math.random() < 0.11;
+
+      if (isDoublePlay) {
+        return { type: 'double_play', productive: false, scored: 0 };
+      } else {
+        const { scored, productive, newRunners } = getProductiveOutResult(runners);
+        if (productive) {
+          return { type: 'productive_out', productive: true, scored };
+        } else {
+          if(isDPSituation){ //you could manually do a string of ifs for each relevant unique base runner combo to get k% how you want it
+            const roll = Math.random();
+            if (roll < 0.50) {
+              return { type: 'strikeout', productive: false, scored: 0 };
+            } else {
+              return { type: 'out', productive: false, scored: 0 };
+            }
+          }
+          else{ //if !DPSituation
+            //if no runners on base, 23.5% is average
+            const roll = Math.random();
+            if (roll < 0.235) {
+              return { type: 'strikeout', productive: false, scored: 0 };
+            } else {
+              return { type: 'out', productive: false, scored: 0 };
+            }
+            //currently if hay 2 outs, i allow productive outs to be an outcome even though it does nothing
+            //however, if the 30% chance of productive out is removed, the experiemntal k% with runners on base+2 outs goes from 16% to roughly 23.5% where we want
+            //i could either remove productive outs from the outcome pool if 2 outs, or manually change k% from 50% to a larger share of the non-productive outs to get to about 23.5%
+          } 
+        }
+      }
+    }
+
+    function formatPercent(count, total) {
+      return ((count / total) * 100).toFixed(2);
+    }
+
+    // Test 1: Out distribution with no runners and 0 outs
+    function testOutDistribution() {
+      const simulations = 10000;
+      const counts = {
+        double_play: 0,
+        productive_out: 0,
+        strikeout: 0,
+        out: 0
+      };
+
+      for (let i = 0; i < simulations; i++) {
+        const runners = [false, false, false];
+        const outs = 0;
+        const result = simulateOutOutcome(runners, outs);
+        counts[result.type]++;
+      }
+
+      const container = document.getElementById('test-out-distribution');
+      const table = document.createElement('table');
+      
+      const headerRow = table.insertRow();
+      ['Out Type', 'Count', 'Percentage'].forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+
+      let html = '<table><thead><tr><th>Out Type</th><th>Count</th><th>Percentage</th></tr></thead><tbody>';
+      for (const [type, count] of Object.entries(counts)) {
+        const percent = formatPercent(count, simulations);
+        html += `<tr><td>${type}</td><td>${count}</td><td>${percent}%</td></tr>`;
+      }
+      html += '</tbody></table>';
+
+      container.innerHTML = html;
+      container.innerHTML += `<p style="margin-top: 1rem; color: #666;">
+        <strong>Expected behavior:</strong> No DP (no runners), ~23.5% strikeout, ~76.5% regular out, ~0% productive out.
+      </p>`;
+    }
+
+    // Test 2: Out distribution with different runner scenarios
+    function testOutDistributionWithRunners() {
+      const simulations = 10000;
+      const scenarios = [
+        { runners: [true, false, false], outs: 0, name: 'Runner on 1st, 0 outs' },
+        { runners: [true, true, false], outs: 0, name: 'Runners on 1st & 2nd, 0 outs' },
+        { runners: [true, true, true], outs: 0, name: 'Bases loaded, 0 outs' },
+        { runners: [true, false, false], outs: 1, name: 'Runner on 1st, 1 out' },
+        { runners: [true, false, false], outs: 2, name: 'Runner on 1st, 2 outs' }
+      ];
+
+      let html = '';
+
+      for (const scenario of scenarios) {
+        const counts = {
+          double_play: 0,
+          productive_out: 0,
+          strikeout: 0,
+          out: 0
+        };
+
+        for (let i = 0; i < simulations; i++) {
+          const result = simulateOutOutcome(scenario.runners, scenario.outs);
+          counts[result.type]++;
+        }
+
+        html += `<div style="margin-bottom: 1.5rem;">
+          <strong>${scenario.name}</strong>
+          <table style="margin-top: 0.5rem; font-size: 14px;">
+            <thead>
+              <tr><th>Out Type</th><th>Count</th><th>Percentage</th></tr>
+            </thead>
+            <tbody>`;
+
+        for (const [type, count] of Object.entries(counts)) {
+          const percent = formatPercent(count, simulations);
+          html += `<tr><td>${type}</td><td>${count}</td><td>${percent}%</td></tr>`;
+        }
+
+        html += `</tbody></table></div>`;
+      }
+
+      document.getElementById('test-out-distribution-runners').innerHTML = html;
+    }
+
+    // Run tests
+    window.addEventListener('load', () => {
+      testOutDistribution();
+      testOutDistributionWithRunners();
+    });
+  </script>
+</body>
+</html>
